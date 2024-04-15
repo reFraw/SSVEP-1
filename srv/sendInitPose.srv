@@ -1,0 +1,3 @@
+---
+float64[] position     # Vector (x, y, z)
+float64[] orientation  # Quaternion (w, x, y, z)

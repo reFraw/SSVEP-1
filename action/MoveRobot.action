@@ -1,0 +1,11 @@
+# GOAL
+geometry_msgs/Pose position
+float64 time
+float64 velocity
+---
+# RESULTS
+int32 status
+geometry_msgs/Pose finalPose
+---
+# FEEDBACK
+geometry_msgs/Pose currentPose
