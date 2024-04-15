@@ -9,5 +9,6 @@ Future updates will focus on integrating the package with OpenVibe software for 
 ## Requirements
 * ROS Noetic
 * Kinova BringUp package from https://github.com/Kinovarobotics/kinova-ros/tree/noetic-devel
+* Plotjuggler for data visualization
 
 ## Usage
