@@ -43,49 +43,49 @@ class InitStateSender {
                 ros::param::get("/JOINT_1", JOINT_1_);
             }
             else {
-                JOINT_1_ = 0.0;
+                JOINT_1_ = 2.912;
             }
 
             if (nh_.hasParam("/JOINT_2")) {
                 ros::param::get("/JOINT_2", JOINT_2_);
             }
             else {
-                JOINT_2_ = 0.0;
+                JOINT_2_ = 0.427;
             }
 
             if (nh_.hasParam("/JOINT_3")) {
                 ros::param::get("/JOINT_3", JOINT_3_);
             }
             else {
-                JOINT_3_ = 0.0;
+                JOINT_3_ = 0.665;
             }
 
             if (nh_.hasParam("/JOINT_4")) {
                 ros::param::get("/JOINT_4", JOINT_4_);
             }
             else {
-                JOINT_4_ = 0.0;
+                JOINT_4_ = 1.262;
             }
 
             if (nh_.hasParam("/JOINT_5")) {
                 ros::param::get("/JOINT_5", JOINT_5_);
             }
             else {
-                JOINT_5_ = 0.0;
+                JOINT_5_ = -0.323;
             }
 
             if (nh_.hasParam("/JOINT_6")) {
                 ros::param::get("/JOINT_6", JOINT_6_);
             }
             else {
-                JOINT_6_ = 0.0;
+                JOINT_6_ = 0.943;
             }
 
             if (nh_.hasParam("/JOINT_7")) {
                 ros::param::get("/JOINT_7", JOINT_7_);
             }
             else {
-                JOINT_7_ = 0.0;
+                JOINT_7_ = 5.240;
             }
             
 

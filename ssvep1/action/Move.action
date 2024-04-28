@@ -1,0 +1,11 @@
+# GOAL
+float64[3] displacement
+float64[3] rpy
+float64 time
+float64 velocity
+---
+# RESULT
+string result
+---
+# FEEDBACK
+float64 percentage

@@ -1,0 +1,8 @@
+# GOAL
+float64[3] object_position
+---
+# RESULT
+string result
+---
+# FEEDBACK
+string phase

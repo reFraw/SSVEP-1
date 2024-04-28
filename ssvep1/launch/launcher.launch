@@ -2,7 +2,7 @@
 
     <rosparam file="$(find ssvep1)/config/config.yaml"/>
 
-    <node pkg="ssvep1" type="joint_init_set" name="joint_init_set"/>
+    <node pkg="ssvep1" type="initial_setup_server" name="initial_setup_server"/>
     <node pkg="ssvep1" type="controller" name="controller"/>
     <node pkg="ssvep1" type="planner" name="planner"/>
     <node pkg="ssvep1" type="robot" name="robot"/>

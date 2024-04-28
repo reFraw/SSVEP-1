@@ -1,0 +1,8 @@
+# GOAL
+float64[3] release_position
+---
+# RESULT
+string result
+---
+# FEEDBACK
+string phase

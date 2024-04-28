@@ -70,7 +70,7 @@ add_service_files(
 ## Generate actions in the 'action' folder
 add_action_files(
   DIRECTORY action
-  FILES MoveRobot.action
+  FILES Move.action Grab.action Release.action GrabAndRelease.action
 )
 
 ## Generate added messages and services with any dependencies listed here
@@ -211,14 +211,18 @@ include_directories(
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
 
-add_executable(joint_init_set src/joint_init_set.cpp)
-target_link_libraries(joint_init_set ${catkin_LIBRARIES})
 
+##################################################################################À
+
+# NEW NODES
 add_executable(controller src/controller.cpp)
 target_link_libraries(controller ${catkin_LIBRARIES})
 
 add_executable(planner src/planner.cpp)
 target_link_libraries(planner ${catkin_LIBRARIES})
+
+add_executable(initial_setup_server src/initial_setup_server.cpp)
+target_link_libraries(initial_setup_server ${catkin_LIBRARIES})
 
 add_executable(robot src/robot.cpp)
 target_link_libraries(robot ${catkin_LIBRARIES})
