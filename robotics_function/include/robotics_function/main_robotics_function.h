@@ -32,7 +32,7 @@ Eigen::Vector3d trapezoidalProfile(const double& qi, const double& qf, const dou
 Eigen::Vector3d planSegment(const Eigen::Vector3d& pi, const Eigen::Vector3d& pf, const double& tf, const double& velocity, const double& t);
 std::vector<Eigen::Vector3d> planSegmentWithVelocity(const Eigen::Vector3d& pi, const Eigen::Vector3d& pf, const double& tf, const double& velocity, const double& t);
 Eigen::Quaterniond planOrientation(const Eigen::Quaterniond& QI, const Eigen::Quaterniond& QF, const double& tf, const double& velocity, const double& t);
-std::vector<Eigen::Quaterniond> planOrientationWithVelocity(const Eigen::Quaterniond& QI, const Eigen::Quaterniond& QF, const double& tf, const double& velocity, const double& t);
+std::vector<Eigen::Quaterniond> planOrientationWithVelocity(const Eigen::Quaterniond& QI, const double& tf, const double& velocity, const double& t, Eigen::Vector3d rotAxis, double rotAngle);
 
 std::vector<double> convertToJaco2(const std::vector<double>& jointState);
 std::vector<double> convertToDH(const std::vector<double>& jointState);

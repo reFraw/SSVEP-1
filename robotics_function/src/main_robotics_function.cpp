@@ -524,69 +524,68 @@ Eigen::Quaterniond planOrientation(const Eigen::Quaterniond& QI, const Eigen::Qu
     return desiredQuaternion;
 }
 
-std::vector<Eigen::Quaterniond> planOrientationWithVelocity(const Eigen::Quaterniond& QI, const Eigen::Quaterniond& QF, const double& tf, const double& velocity, const double& t) {
+std::vector<Eigen::Quaterniond> planOrientationWithVelocity(const Eigen::Quaterniond& QI, const double& tf, const double& velocity, const double& t, Eigen::Vector3d rotAxis, double rotAngle) {
 
     Eigen::Quaterniond desiredQuaternion;
     Eigen::Quaterniond desiredAngularVelocity;
 
     std::vector<Eigen::Quaterniond> res(2);
 
-    if (QI.w() == QF.w() && QI.x() == QF.x() && QI.y() == QF.y() && QI.z() == QF.z()) {
+    Eigen::Matrix3d Ri = QI.toRotationMatrix();
 
-        desiredQuaternion = QI;
-        desiredAngularVelocity.x() = 0.0;
-        desiredAngularVelocity.y() = 0.0;
-        desiredAngularVelocity.z() = 0.0; 
-    }
+    Eigen::Vector3d th = trapezoidalProfile(0, rotAngle, velocity, tf, t);
+    
+    Eigen::AngleAxisd NA(th[0], rotAxis);
+    Eigen::Matrix3d  Rr = Ri*NA.toRotationMatrix();
+    desiredQuaternion = Eigen::Quaterniond(Rr);
 
-    else {
+    Eigen::Vector3d omegai = th[1]*rotAxis;
+    Eigen::Vector3d omegae = Ri*omegai;
 
-        Eigen::Matrix3d Ri = quat2rot(QI);
-        Eigen::Matrix3d Rf = quat2rot(QF);
-
-        Eigen::Matrix3d Rit = Ri.transpose();
-        Eigen::Matrix3d Rif = Rit*Rf;
-
-        Eigen::AngleAxisd AA = rot2angleaxis(Rif);
-
-        double finalTheta = AA.angle();
-        Eigen::Vector3d rotationAxis = AA.axis();
-        rotationAxis.normalize();
-
-        Eigen::Vector3d th = trapezoidalProfile(0, finalTheta, velocity, tf, t);
-        Eigen::AngleAxisd NA;
-        NA.angle() = th[0];
-        NA.axis() = rotationAxis;
-        Eigen::Matrix3d instantRotation = NA.toRotationMatrix();
-        Eigen::Matrix3d Rr = Ri*instantRotation;
-
-        Eigen::Vector3d omegai = th[1]*rotationAxis;
-        Eigen::Vector3d omega_e = Ri*omegai;
-
-        desiredAngularVelocity.x() = omega_e[0];
-        desiredAngularVelocity.y() = omega_e[1];
-        desiredAngularVelocity.z() = omega_e[2];
-        desiredQuaternion = rot2quat(Rr);
-
-    }
-
-    if(std::isnan(desiredQuaternion.w())) {
-        desiredQuaternion.w() = 0.00;
-    }
-    if(std::isnan(desiredQuaternion.x())) {
-        desiredQuaternion.x() = 0.00;
-    }
-    if(std::isnan(desiredQuaternion.y())) {
-        desiredQuaternion.y() = 0.00;
-    }
-    if(std::isnan(desiredQuaternion.z())) {
-        desiredQuaternion.z() = 0.00;
-    }
+    desiredAngularVelocity.x() = omegae[0];
+    desiredAngularVelocity.y() = omegae[1];
+    desiredAngularVelocity.z() = omegae[2];
 
     res[0] = desiredQuaternion;
     res[1] = desiredAngularVelocity;
 
-    return res;    
+    return res;
+
+
+    //////////////////////////////////////////////////////////////////////////////////////////
+
+    // Eigen::Matrix3d Ri = QI.toRotationMatrix();
+    // Eigen::Matrix3d Rf = QF.toRotationMatrix();
+
+    // Eigen::Matrix3d Rit = Ri.transpose();
+    // Eigen::Matrix3d Rif = Rit*Rf;
+
+    // Eigen::AngleAxisd AA = rot2angleaxis(Rif);
+
+    // double finalTheta = AA.angle();
+    // Eigen::Vector3d rotationAxis = AA.axis();
+    // rotationAxis.normalize();
+
+    // Eigen::Vector3d th = trapezoidalProfile(0, finalTheta, velocity, tf, t);
+    // Eigen::AngleAxisd NA;
+    // NA.angle() = th[0];
+    // NA.axis() = rotationAxis;
+    // Eigen::Matrix3d instantRotation = angleaxis2rot(NA);
+    // Eigen::Matrix3d Rr = Ri*instantRotation;
+
+    // Eigen::Vector3d omegai = th[1]*rotationAxis;
+    // Eigen::Vector3d omega_e = Ri*omegai;
+
+    // desiredAngularVelocity.x() = omega_e[0];
+    // desiredAngularVelocity.y() = omega_e[1];
+    // desiredAngularVelocity.z() = omega_e[2];
+    // desiredQuaternion = Eigen::Quaterniond(Rr);
+
+
+    // res[0] = desiredQuaternion;
+    // res[1] = desiredAngularVelocity;
+
+    // return res;    
 
 }
 
@@ -619,7 +618,7 @@ std::vector<double> convertToDH(const std::vector<double>& jointState) {
     joint_DH[3] = jointState[3];
     joint_DH[4] = jointState[4];
     joint_DH[5] = jointState[5] - PI;
-    joint_DH[6] = -jointState[6];
+    joint_DH[6] = -jointState[6] + PI/2;
 
     return joint_DH;
 }
@@ -674,7 +673,7 @@ std::vector<std::vector<double>> applyIK2(const Eigen::Vector3d& xd, const Eigen
     Eigen::Matrix4d T = directKinematics(jointState, jointState.size());
 
     Eigen::Vector3d xe = T.block<3,1>(0,3);
-    Eigen::Quaterniond qe = rot2quat(T.block<3,3>(0,0));
+    Eigen::Quaterniond qe = Eigen::Quaterniond(T.block<3,3>(0,0));
 
     Eigen::Vector3d ep = xd - xe;
     Eigen::Vector3d eo = quaternionError(qd, qe);
@@ -754,7 +753,7 @@ std::vector<std::vector<double>> applyIK2withNull(const Eigen::Vector3d& xd, con
     Eigen::Matrix4d T = directKinematics(jointState, jointState.size());
 
     Eigen::Vector3d xe = T.block<3,1>(0,3);
-    Eigen::Quaterniond qe = rot2quat(T.block<3,3>(0,0));
+    Eigen::Quaterniond qe = Eigen::Quaterniond(T.block<3,3>(0,0));
 
     Eigen::Vector3d ep = xd - xe;
     Eigen::Vector3d eo = quaternionError(qd, qe);
@@ -771,7 +770,7 @@ std::vector<std::vector<double>> applyIK2withNull(const Eigen::Vector3d& xd, con
     Eigen::MatrixXd K = Eigen::MatrixXd::Identity(6, 6);
     K *= Gain;
 
-    Eigen::MatrixXd nullP = Eigen::MatrixXd::Identity(6,6) - invJ*J;
+    Eigen::MatrixXd nullP = Eigen::MatrixXd::Identity(7,7) - invJ*J;
 
     Eigen::VectorXd dq = invJ*(xdotd + K*err) + nullP*nullVelocity;
 

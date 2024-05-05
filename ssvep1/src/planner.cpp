@@ -65,6 +65,7 @@ class Planner
         double APPROACH_DISTANCE_ = 0.07;
         double ZONE1_THRESHOLD_ = 0.3;
         double ZONE2_THRESHOLD_ = 0.6;
+        double TOLERANCE_ = 0.01;
 
         Vector3d CURRENT_POSITION_;
         Quaterniond CURRENT_ORIENTATION_;
@@ -227,10 +228,19 @@ class Planner
             Quaterniond orientation;
             Quaterniond angularVelocity;
 
+            Matrix3d Ri = startOrientation.toRotationMatrix();
+            Matrix3d Rf = finalOrientation.toRotationMatrix();
+            Matrix3d Rif = Ri.transpose()*Rf;
+
+            AngleAxisd AA(Rif);
+            Vector3d rotAxis = AA.axis();
+            rotAxis.normalize();
+            double rotAngle = AA.angle();
+
             for(int i=0; i < nPoints; i++)
             {
                 std::vector<Vector3d> P = planSegmentWithVelocity(startPoint, finalPoint, time, velocity, SIMULATION_TIME_);
-                std::vector<Quaterniond> Q = planOrientationWithVelocity(startOrientation, finalOrientation, time, velocity, SIMULATION_TIME_);
+                std::vector<Quaterniond> Q = planOrientationWithVelocity(startOrientation, time, velocity, SIMULATION_TIME_, rotAxis, rotAngle);
 
                 position = P[0];
                 linearVelocity = P[1];
@@ -289,11 +299,11 @@ class Planner
             double phaseFourVelocity = D4.norm()/phaseFourTime;
             double phaseFiveVelocity = D1.norm()/phaseFiveTime;
             
-            this->move(D1, grabOrientation, phaseOneTime, phaseOneVelocity); // Moving to the approach position.
-            this->move(D2, CURRENT_ORIENTATION_, phaseTwoTime, phaseTwoVelocity); // Object approach.
-            this->move(D3, CURRENT_ORIENTATION_, phaseThreeTime, phaseThreeVelocity); // Grabbing object - TODO Implement routines for object grabbing.
-            this->move(D4, CURRENT_ORIENTATION_, phaseFourTime, phaseFourVelocity); // Return to the approach position.
-            this->move(D5, startOrientation, phaseFiveTime, phaseFiveVelocity); // Return to initial position.
+            this->move(D1, grabOrientation, phaseOneTime + DELAY_, phaseOneVelocity); // Moving to the approach position.
+            this->move(D2, grabOrientation, phaseTwoTime + DELAY_, phaseTwoVelocity); // Object approach.
+            this->move(D3, CURRENT_ORIENTATION_, phaseThreeTime + DELAY_, phaseThreeVelocity); // Grabbing object - TODO Implement routines for object grabbing.
+            this->move(D4, CURRENT_ORIENTATION_, phaseFourTime + DELAY_, phaseFourVelocity); // Return to the approach position.
+            this->move(D5, startOrientation, phaseFiveTime + DELAY_, phaseFiveVelocity); // Return to initial position.
         };
 
         void release(Vector3d releasePosition)
@@ -322,11 +332,11 @@ class Planner
             double phaseFourVelocity = D4.norm()/phaseFourTime;
             double phaseFiveVelocity = D1.norm()/phaseFiveTime;
             
-            this->move(D1, grabOrientation, phaseOneTime, phaseOneVelocity); // Moving to the approach position.
-            this->move(D2, CURRENT_ORIENTATION_, phaseTwoTime, phaseTwoVelocity); // Object approach.
-            this->move(D3, CURRENT_ORIENTATION_, phaseThreeTime, phaseThreeVelocity); // Releasing object - TODO Implement routines for object releasing.
-            this->move(D4, CURRENT_ORIENTATION_, phaseFourTime, phaseFourVelocity); // Return to the approach position.
-            this->move(D5, startOrientation, phaseFiveTime, phaseFiveVelocity); // Return to initial position.
+            this->move(D1, grabOrientation, phaseOneTime + DELAY_, phaseOneVelocity); // Moving to the approach position.
+            this->move(D2, CURRENT_ORIENTATION_, phaseTwoTime + DELAY_, phaseTwoVelocity); // Object approach.
+            this->move(D3, CURRENT_ORIENTATION_, phaseThreeTime + DELAY_, phaseThreeVelocity); // Releasing object - TODO Implement routines for object releasing.
+            this->move(D4, CURRENT_ORIENTATION_, phaseFourTime + DELAY_, phaseFourVelocity); // Return to the approach position.
+            this->move(D5, startOrientation, phaseFiveTime + DELAY_, phaseFiveVelocity); // Return to initial position.
         };
 
         void grabAndRelease(Vector3d objectPosition, Vector3d releasePosition)
