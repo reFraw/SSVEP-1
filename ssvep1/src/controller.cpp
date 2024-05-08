@@ -4,6 +4,7 @@
 
 #include "thesis_msgs/DesiredWaypoint.h"
 #include "thesis_msgs/Error.h"
+#include "thesis_msgs/FingerJoints.h"
 #include "sensor_msgs/JointState.h"
 #include "geometry_msgs/Pose.h"
 
@@ -13,6 +14,8 @@
 #include "eigen3/Eigen/Core"
 #include "eigen3/Eigen/Dense"
 #include "eigen3/Eigen/Geometry"
+
+#include "kinova_msgs/JointVelocity.h"
 
 class Controller
 {
@@ -29,9 +32,11 @@ class Controller
         ros::Subscriber waypointSubscriber_;
         ros::Subscriber jointStateSubscriber_;
 
+
         ros::Rate CONTROLLER_CLOCK_{100};
 
         std::vector<double> JOINT_STATE_{7};
+        std::vector<double> FINGER_VEL_{6};
         std::vector<std::string> JOINT_NAMES_ = {
             "j2s7s300_joint_1",
             "j2s7s300_joint_2",
@@ -42,7 +47,7 @@ class Controller
             "j2s7s300_joint_7"
         };
 
-        double GAIN_ = 5;
+        double GAIN_ = 2;
 
         bool INIT_STATE_RECEIVED_ = false;
         bool POSE_SENDED_ = false;
@@ -58,11 +63,22 @@ class Controller
 
         geometry_msgs::Pose CURRENT_POSE_MSG_;
         thesis_msgs::Error ERROR_MSG_;
-        sensor_msgs::JointState JOINT_VELOCITIES_MSG_;
+        kinova_msgs::JointVelocity JOINT_VELOCITIES_MSG_;
 
         void jointStateCallback(const sensor_msgs::JointStateConstPtr& jointMsg)
         {
-            JOINT_STATE_ = jointMsg->position;
+
+            std::vector<double> joint = {
+                jointMsg->position[0],
+                jointMsg->position[1],
+                jointMsg->position[2],
+                jointMsg->position[3],
+                jointMsg->position[4],
+                jointMsg->position[5],
+                jointMsg->position[6]
+            };
+
+            JOINT_STATE_ = convertToDH(joint);
 
             Eigen::Matrix4d T = directKinematics(JOINT_STATE_, JOINT_STATE_.size());
             Eigen::Quaterniond Q(T.block<3,3>(0,0));
@@ -75,8 +91,20 @@ class Controller
             CURRENT_POSE_MSG_.orientation.y = Q.y();
             CURRENT_POSE_MSG_.orientation.z = Q.z();
 
+            if (!INIT_STATE_RECEIVED_)
+            {
+                DESIRED_POSITION_ = {T(0,3), T(1,3), T(2,3)};
+                DESIRED_ORIENTATION_ = Q;
+                INIT_STATE_RECEIVED_ = true;
+            }
+
             currentPosePublisher_.publish(CURRENT_POSE_MSG_);
         };
+
+        void fingerCallback(const thesis_msgs::FingerJointsConstPtr& fingerMsg)
+        {
+            FINGER_VEL_ = fingerMsg->values;
+        }
 
         void waypointCallback(const thesis_msgs::DesiredWaypointConstPtr& waypointMsg)
         {
@@ -141,40 +169,22 @@ class Controller
             ros::param::get("/NULL_GAIN", K0_);
             ros::param::get("/DERIVATIVE_STEP", DERIVATIVE_STEP_);
 
-            JOINT_VELOCITIES_MSG_.name = JOINT_NAMES_;
+            jointStateSubscriber_ = nh_.subscribe("/j2s7s300_driver/out/joint_state", 1, &Controller::jointStateCallback, this);
 
-            initJointStateClient_ = nh_.serviceClient<ssvep1::sendInitState>("/initial_joint_state");
-            ssvep1::sendInitState initStateSrv;
+            jointVelocitiesPublisher_ = nh_.advertise<kinova_msgs::JointVelocity>("/j2s7s300_driver/in/joint_velocity", 1);
+            errorPublisher_ = nh_.advertise<thesis_msgs::Error>("/errors", 1);
+            currentPosePublisher_ = nh_.advertise<geometry_msgs::Pose>("/current_pose", 1);
+            
+            waypointSubscriber_ = nh_.subscribe("/desired_waypoint", 1, &Controller::waypointCallback, this);
 
             while(!INIT_STATE_RECEIVED_)
             {
-                if(initJointStateClient_.call(initStateSrv))
-                {
-                    JOINT_STATE_ = initStateSrv.response.initJointState;
-
-                    Eigen::Matrix4d T = directKinematics(JOINT_STATE_, JOINT_STATE_.size());
-
-                    DESIRED_POSITION_ = {T(0,3), T(1,3), T(2,3)};
-                    DESIRED_ORIENTATION_ = Eigen::Quaterniond(T.block<3,3>(0,0));
-
-                    INIT_STATE_RECEIVED_ = true;
-                    ROS_INFO("Initial joint configuration received.");
-                }
-                else
-                {
-                    ROS_WARN("Waiting to receive the initial joint configuration.");
-                }
-
+                ROS_WARN("Waiting for initial state");
+                ros::spinOnce();
                 CONTROLLER_CLOCK_.sleep();
             }
 
             initPoseServer_ = nh_.advertiseService("/initial_pose", &Controller::sendInitPose, this);
-
-            jointVelocitiesPublisher_ = nh_.advertise<sensor_msgs::JointState>("/joint_velocities", 1);
-            errorPublisher_ = nh_.advertise<thesis_msgs::Error>("/errors", 1);
-            currentPosePublisher_ = nh_.advertise<geometry_msgs::Pose>("/current_pose", 1);
-            jointStateSubscriber_ = nh_.subscribe("/joint_state", 1, &Controller::jointStateCallback, this);
-            waypointSubscriber_ = nh_.subscribe("/desired_waypoint", 1, &Controller::waypointCallback, this);
 
             while(ros::ok())
             {   
@@ -190,8 +200,27 @@ class Controller
                     results = applyIK2(DESIRED_POSITION_, DESIRED_ORIENTATION_, DESIRED_LINEAR_VELOCITY_, DESIRED_ANGULAR_VELOCITY_, JOINT_STATE_, GAIN_);
                 }
 
-                std::vector<double> velocities = results[0];
+                std::vector<double> velocities = convertToJaco2Velocities(results[0]);
+                velocities = convertToDeg(velocities);
+
                 std::vector<double> errors = results[1];
+
+                Eigen::Vector3d posErr = {errors[0], errors[1], errors[2]};
+                Eigen::Vector3d oriErr = {errors[3], errors[4], errors[5]};
+
+                // if (posErr.norm() >= 0.2 || oriErr.norm() >= 0.2)
+                // {
+                //     JOINT_VELOCITIES_MSG_.joint1 = 0;
+                //     JOINT_VELOCITIES_MSG_.joint2 = 0;
+                //     JOINT_VELOCITIES_MSG_.joint3 = 0;
+                //     JOINT_VELOCITIES_MSG_.joint4 = 0;
+                //     JOINT_VELOCITIES_MSG_.joint5 = 0;
+                //     JOINT_VELOCITIES_MSG_.joint6 = 0;
+                //     JOINT_VELOCITIES_MSG_.joint7 = 0;
+
+                //     jointVelocitiesPublisher_.publish(JOINT_VELOCITIES_MSG_);
+                //     ros::shutdown();
+                // }
 
                 ERROR_MSG_.positionErrorX = errors[0];
                 ERROR_MSG_.positionErrorY = errors[1];
@@ -200,8 +229,13 @@ class Controller
                 ERROR_MSG_.orientationErrorY = errors[4];
                 ERROR_MSG_.orientationErrorZ = errors[5];
 
-                JOINT_VELOCITIES_MSG_.header.stamp = ros::Time::now();
-                JOINT_VELOCITIES_MSG_.velocity = velocities;
+                JOINT_VELOCITIES_MSG_.joint1 = velocities[0];
+                JOINT_VELOCITIES_MSG_.joint2 = velocities[1];
+                JOINT_VELOCITIES_MSG_.joint3 = velocities[2];
+                JOINT_VELOCITIES_MSG_.joint4 = velocities[3];
+                JOINT_VELOCITIES_MSG_.joint5 = velocities[4];
+                JOINT_VELOCITIES_MSG_.joint6 = velocities[5];
+                JOINT_VELOCITIES_MSG_.joint7 = velocities[6];
 
                 jointVelocitiesPublisher_.publish(JOINT_VELOCITIES_MSG_);
                 errorPublisher_.publish(ERROR_MSG_);

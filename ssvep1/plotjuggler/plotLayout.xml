@@ -1,57 +1,57 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <root>
- <tabbed_widget parent="main_window" name="Main Window">
-  <Tab tab_name="Jaco2" containers="1">
+ <tabbed_widget name="Main Window" parent="main_window">
+  <Tab containers="1" tab_name="tab1">
    <Container>
-    <DockSplitter count="2" sizes="0.5;0.5" orientation="-">
-     <DockSplitter count="2" sizes="0.5;0.5" orientation="|">
+    <DockSplitter sizes="0.5;0.5" orientation="-" count="2">
+     <DockSplitter sizes="0.5;0.5" orientation="|" count="2">
       <DockArea name="...">
        <plot flip_x="false" mode="TimeSeries" flip_y="false" style="Lines">
-        <range left="34.087963" bottom="-2.159875" right="68.078585" top="3.126875"/>
+        <range left="22.225072" right="56.225021" bottom="-6.186124" top="4.347386"/>
         <limitY/>
-        <curve color="#17becf" name="/joint_state/j2s7s300_joint_1/position"/>
-        <curve color="#bcbd22" name="/joint_state/j2s7s300_joint_2/position"/>
-        <curve color="#1f77b4" name="/joint_state/j2s7s300_joint_3/position"/>
-        <curve color="#d62728" name="/joint_state/j2s7s300_joint_4/position"/>
-        <curve color="#1ac938" name="/joint_state/j2s7s300_joint_5/position"/>
-        <curve color="#ff7f0e" name="/joint_state/j2s7s300_joint_6/position"/>
-        <curve color="#f14cc1" name="/joint_state/j2s7s300_joint_7/position"/>
+        <curve name="/j2s7s300_driver/out/joint_state/j2s7s300_joint_1/position" color="#ff7f0e"/>
+        <curve name="/j2s7s300_driver/out/joint_state/j2s7s300_joint_2/position" color="#f14cc1"/>
+        <curve name="/j2s7s300_driver/out/joint_state/j2s7s300_joint_3/position" color="#9467bd"/>
+        <curve name="/j2s7s300_driver/out/joint_state/j2s7s300_joint_4/position" color="#17becf"/>
+        <curve name="/j2s7s300_driver/out/joint_state/j2s7s300_joint_5/position" color="#bcbd22"/>
+        <curve name="/j2s7s300_driver/out/joint_state/j2s7s300_joint_6/position" color="#1f77b4"/>
+        <curve name="/j2s7s300_driver/out/joint_state/j2s7s300_joint_7/position" color="#d62728"/>
        </plot>
       </DockArea>
-      <DockArea name="...">
-       <plot flip_x="false" mode="TimeSeries" flip_y="false" style="Lines">
-        <range left="34.087841" bottom="-0.000000" right="68.078479" top="0.000000"/>
-        <limitY/>
-        <curve color="#ff7f0e" name="/errors/positionErrorX"/>
-        <curve color="#f14cc1" name="/errors/positionErrorY"/>
-        <curve color="#9467bd" name="/errors/positionErrorZ"/>
-       </plot>
-      </DockArea>
+      <DockSplitter sizes="0.5;0.5" orientation="-" count="2">
+       <DockArea name="...">
+        <plot flip_x="false" mode="TimeSeries" flip_y="false" style="Lines">
+         <range left="22.230132" right="56.220238" bottom="-0.000000" top="0.000000"/>
+         <limitY/>
+         <curve name="/errors/positionErrorX" color="#1f77b4"/>
+         <curve name="/errors/positionErrorY" color="#d62728"/>
+         <curve name="/errors/positionErrorZ" color="#1ac938"/>
+        </plot>
+       </DockArea>
+       <DockArea name="...">
+        <plot flip_x="false" mode="TimeSeries" flip_y="false" style="Lines">
+         <range left="22.230132" right="56.220238" bottom="-0.000000" top="0.000000"/>
+         <limitY/>
+         <curve name="/errors/orientationErrorX" color="#ff7f0e"/>
+         <curve name="/errors/orientationErrorY" color="#f14cc1"/>
+         <curve name="/errors/orientationErrorZ" color="#9467bd"/>
+        </plot>
+       </DockArea>
+      </DockSplitter>
      </DockSplitter>
-     <DockSplitter count="2" sizes="0.5;0.5" orientation="|">
-      <DockArea name="...">
-       <plot flip_x="false" mode="TimeSeries" flip_y="false" style="Lines">
-        <range left="34.087814" bottom="-0.000000" right="68.078431" top="0.000000"/>
-        <limitY/>
-        <curve color="#9467bd" name="/joint_velocities/j2s7s300_joint_1/velocity"/>
-        <curve color="#17becf" name="/joint_velocities/j2s7s300_joint_2/velocity"/>
-        <curve color="#bcbd22" name="/joint_velocities/j2s7s300_joint_3/velocity"/>
-        <curve color="#1f77b4" name="/joint_velocities/j2s7s300_joint_4/velocity"/>
-        <curve color="#d62728" name="/joint_velocities/j2s7s300_joint_5/velocity"/>
-        <curve color="#1ac938" name="/joint_velocities/j2s7s300_joint_6/velocity"/>
-        <curve color="#ff7f0e" name="/joint_velocities/j2s7s300_joint_7/velocity"/>
-       </plot>
-      </DockArea>
-      <DockArea name="...">
-       <plot flip_x="false" mode="TimeSeries" flip_y="false" style="Lines">
-        <range left="34.087841" bottom="-0.000000" right="68.078479" top="0.000000"/>
-        <limitY/>
-        <curve color="#1f77b4" name="/errors/orientationErrorX"/>
-        <curve color="#d62728" name="/errors/orientationErrorY"/>
-        <curve color="#1ac938" name="/errors/orientationErrorZ"/>
-       </plot>
-      </DockArea>
-     </DockSplitter>
+     <DockArea name="...">
+      <plot flip_x="false" mode="TimeSeries" flip_y="false" style="Lines">
+       <range left="22.230094" right="56.220194" bottom="-0.000000" top="0.000000"/>
+       <limitY/>
+       <curve name="/j2s7s300_driver/in/joint_velocity/joint1" color="#17becf"/>
+       <curve name="/j2s7s300_driver/in/joint_velocity/joint2" color="#bcbd22"/>
+       <curve name="/j2s7s300_driver/in/joint_velocity/joint3" color="#1f77b4"/>
+       <curve name="/j2s7s300_driver/in/joint_velocity/joint4" color="#d62728"/>
+       <curve name="/j2s7s300_driver/in/joint_velocity/joint5" color="#1ac938"/>
+       <curve name="/j2s7s300_driver/in/joint_velocity/joint6" color="#ff7f0e"/>
+       <curve name="/j2s7s300_driver/in/joint_velocity/joint7" color="#f14cc1"/>
+      </plot>
+     </DockArea>
     </DockSplitter>
    </Container>
   </Tab>
@@ -62,7 +62,7 @@
  <!-- - - - - - - - - - - - - - - -->
  <Plugins>
   <plugin ID="DataLoad CSV">
-   <parameters delimiter="0" time_axis=""/>
+   <parameters time_axis="" delimiter="0"/>
   </plugin>
   <plugin ID="DataLoad MCAP"/>
   <plugin ID="DataLoad ROS bags">
@@ -80,7 +80,7 @@
    <max_array_size value="100"/>
    <boolean_strings_to_number value="true"/>
    <remove_suffix_from_strings value="true"/>
-   <selected_topics value="/current_pose;/desired_waypoint;/errors;/initialpose;/joint_state;/joint_velocities"/>
+   <selected_topics value="/errors;/finger/cancel;/finger/goal;/initialpose;/j2s7s300_driver/in/joint_velocity;/j2s7s300_driver/out/joint_state;/current_pose"/>
   </plugin>
   <plugin ID="UDP Server"/>
   <plugin ID="WebSocket Server"/>

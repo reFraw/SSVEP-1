@@ -53,6 +53,7 @@ add_message_files(
   AngularVelocity.msg
   Error.msg
   DesiredWaypoint.msg
+  FingerJoints.msg
 )
 
 ## Generate services in the 'srv' folder

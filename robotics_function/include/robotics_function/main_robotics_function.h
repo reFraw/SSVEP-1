@@ -35,7 +35,11 @@ Eigen::Quaterniond planOrientation(const Eigen::Quaterniond& QI, const Eigen::Qu
 std::vector<Eigen::Quaterniond> planOrientationWithVelocity(const Eigen::Quaterniond& QI, const double& tf, const double& velocity, const double& t, Eigen::Vector3d rotAxis, double rotAngle);
 
 std::vector<double> convertToJaco2(const std::vector<double>& jointState);
+std::vector<double> convertToJaco2Velocities(const std::vector<double>& jointState);
 std::vector<double> convertToDH(const std::vector<double>& jointState);
+std::vector<double> convertToDHVelocities(const std::vector<double>& jointState);
+std::vector<double> convertToDeg(const std::vector<double>& jointState);
+std::vector<double> convertToRad(const std::vector<double>& jointState);
 
 std::vector<std::vector<double>> applyIK(const Eigen::Vector3d& xd, const Eigen::Quaterniond& qd, const std::vector<double>& jointState, const double& Gain);
 std::vector<std::vector<double>> applyIK2(const Eigen::Vector3d& xd, const Eigen::Quaterniond& qd, const Eigen::Vector3d& vd, const Eigen::Vector3d& omegad, const std::vector<double>& jointState, const double& Gain);

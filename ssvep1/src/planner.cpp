@@ -7,6 +7,7 @@
 #include <thesis_msgs/Orientation.h>
 #include <thesis_msgs/DesiredWaypoint.h>
 #include <thesis_msgs/Error.h>
+#include <thesis_msgs/FingerJoints.h>
 #include <geometry_msgs/Pose.h>
 #include <std_msgs/String.h>
 
@@ -17,6 +18,8 @@
 #include <eigen3/Eigen/Geometry>
 
 #include <actionlib/server/simple_action_server.h>
+#include <actionlib/client/simple_action_client.h>
+#include <kinova_driver/kinova_fingers_action.h>
 
 #include <ssvep1/MoveAction.h>
 #include <ssvep1/GrabAction.h>
@@ -38,12 +41,16 @@ class Planner
         actionlib::SimpleActionServer<ssvep1::ReleaseAction> releaseServer_;
         actionlib::SimpleActionServer<ssvep1::GrabAndReleaseAction> grabAndReleaseServer_;
 
+        actionlib::SimpleActionClient<kinova_msgs::SetFingersPositionAction> fingerClient_;
+
         ssvep1::MoveResult MOVE_RESULT_;
         ssvep1::GrabResult GRAB_RESULT_;
         ssvep1::ReleaseResult RELEASE_RESULT_;
         ssvep1::GrabAndReleaseResult GRAB_AND_RELEASE_RESULT_;
 
         ros::ServiceClient initPoseClient_;
+
+        kinova_msgs::SetFingersPositionGoal FINGER_POS_GOAL_;
 
         ros::Publisher waypointPublisher_;
         thesis_msgs::DesiredWaypoint WAYPOINT_MSG_;
@@ -214,6 +221,7 @@ class Planner
             }
         };
 
+
         void move(Vector3d displacement, Quaterniond finalOrientation, double time, double velocity)
         {
             double totalTime = time + DELAY_;
@@ -301,7 +309,21 @@ class Planner
             
             this->move(D1, grabOrientation, phaseOneTime + DELAY_, phaseOneVelocity); // Moving to the approach position.
             this->move(D2, grabOrientation, phaseTwoTime + DELAY_, phaseTwoVelocity); // Object approach.
-            this->move(D3, CURRENT_ORIENTATION_, phaseThreeTime + DELAY_, phaseThreeVelocity); // Grabbing object - TODO Implement routines for object grabbing.
+
+            FINGER_POS_GOAL_.fingers.finger1 = 0.0;
+            FINGER_POS_GOAL_.fingers.finger2 = 0.0;
+            FINGER_POS_GOAL_.fingers.finger3 = 0.0;
+            fingerClient_.sendGoal(FINGER_POS_GOAL_);
+            fingerClient_.waitForResult();
+            fingerClient_.getResult();
+
+            FINGER_POS_GOAL_.fingers.finger1 = 5500;
+            FINGER_POS_GOAL_.fingers.finger2 = 5500;
+            FINGER_POS_GOAL_.fingers.finger3 = 5500;
+            fingerClient_.sendGoal(FINGER_POS_GOAL_);
+            fingerClient_.waitForResult();
+            fingerClient_.getResult();
+
             this->move(D4, CURRENT_ORIENTATION_, phaseFourTime + DELAY_, phaseFourVelocity); // Return to the approach position.
             this->move(D5, startOrientation, phaseFiveTime + DELAY_, phaseFiveVelocity); // Return to initial position.
         };
@@ -334,7 +356,14 @@ class Planner
             
             this->move(D1, grabOrientation, phaseOneTime + DELAY_, phaseOneVelocity); // Moving to the approach position.
             this->move(D2, CURRENT_ORIENTATION_, phaseTwoTime + DELAY_, phaseTwoVelocity); // Object approach.
-            this->move(D3, CURRENT_ORIENTATION_, phaseThreeTime + DELAY_, phaseThreeVelocity); // Releasing object - TODO Implement routines for object releasing.
+
+            FINGER_POS_GOAL_.fingers.finger1 = 0.00;
+            FINGER_POS_GOAL_.fingers.finger2 = 0.00;
+            FINGER_POS_GOAL_.fingers.finger3 = 0.00;
+            fingerClient_.sendGoal(FINGER_POS_GOAL_);
+            fingerClient_.waitForResult();
+            fingerClient_.getResult();
+
             this->move(D4, CURRENT_ORIENTATION_, phaseFourTime + DELAY_, phaseFourVelocity); // Return to the approach position.
             this->move(D5, startOrientation, phaseFiveTime + DELAY_, phaseFiveVelocity); // Return to initial position.
         };
@@ -416,7 +445,8 @@ class Planner
             moveServer_(nh_, "Move", boost::bind(&Planner::MoveActionCallback, this, _1), false),
             grabServer_(nh_, "Grab", boost::bind(&Planner::GrabActionCallback, this, _1), false),
             releaseServer_(nh_, "Release", boost::bind(&Planner::ReleaseActionCallback, this, _1), false),
-            grabAndReleaseServer_(nh_, "GrabRel", boost::bind(&Planner::GrabAndReleaseCallback, this, _1), false)
+            grabAndReleaseServer_(nh_, "GrabRel", boost::bind(&Planner::GrabAndReleaseCallback, this, _1), false),
+            fingerClient_("finger", true)
         {
             ros::param::get("/SAMPLING_TIME", SAMPLING_TIME_);
             ros::param::get("/TIME_DELAY", DELAY_);

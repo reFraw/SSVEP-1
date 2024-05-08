@@ -2,14 +2,13 @@
 
     <rosparam file="$(find ssvep1)/config/config.yaml"/>
 
-    <node pkg="ssvep1" type="initial_setup_server" name="initial_setup_server"/>
+    <node pkg="ssvep1" type="robot" name="robot"/>
     <node pkg="ssvep1" type="controller" name="controller"/>
     <node pkg="ssvep1" type="planner" name="planner"/>
-    <node pkg="ssvep1" type="robot" name="robot"/>
+
+    <include file="$(find kinova_bringup)/launch/launcher.launch"/>
 
     <node pkg="plotjuggler" type="plotjuggler" name="plotjuggler" args="-n -l $(find ssvep1)/plotjuggler/plotLayout.xml"/>
     <node pkg="rviz" type="rviz" name="rviz" args="-d $(find ssvep1)/rviz/rvizConfig.rviz"/>
-
-    <include file="$(find kinova_bringup)/launch/kinova_robot.launch"/>
 
 </launch>

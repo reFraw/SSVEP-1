@@ -17,6 +17,8 @@ find_package(catkin REQUIRED COMPONENTS
   message_generation
   actionlib_msgs
   actionlib
+  kinova_msgs
+  kinova_driver
 )
 
 ## System dependencies are found with CMake's conventions
@@ -76,7 +78,7 @@ add_action_files(
 ## Generate added messages and services with any dependencies listed here
 generate_messages(
   DEPENDENCIES
-  sensor_msgs   std_msgs   thesis_msgs actionlib_msgs
+  sensor_msgs   std_msgs thesis_msgs actionlib_msgs
 )
 
 ################################################
@@ -220,9 +222,6 @@ target_link_libraries(controller ${catkin_LIBRARIES})
 
 add_executable(planner src/planner.cpp)
 target_link_libraries(planner ${catkin_LIBRARIES})
-
-add_executable(initial_setup_server src/initial_setup_server.cpp)
-target_link_libraries(initial_setup_server ${catkin_LIBRARIES})
 
 add_executable(robot src/robot.cpp)
 target_link_libraries(robot ${catkin_LIBRARIES})

@@ -601,7 +601,24 @@ std::vector<double> convertToJaco2(const std::vector<double>& jointState) {
     joint_jaco[3] = jointState[3];
     joint_jaco[4] = jointState[4];
     joint_jaco[5] = jointState[5] + PI;
-    joint_jaco[6] = -jointState[6] - PI/2; // AGGIUNTA DI -PI/2 SENZA SENSO
+    joint_jaco[6] = -jointState[6]; // AGGIUNTA DI -PI/2 SENZA SENSO
+
+    return joint_jaco;
+}
+
+std::vector<double> convertToJaco2Velocities(const std::vector<double>& jointState) {
+
+    int N_JOINTS = jointState.size();
+
+    std::vector<double> joint_jaco(N_JOINTS);
+
+    joint_jaco[0] = -jointState[0];
+    joint_jaco[1] = jointState[1];
+    joint_jaco[2] = jointState[2];
+    joint_jaco[3] = jointState[3];
+    joint_jaco[4] = jointState[4];
+    joint_jaco[5] = jointState[5];
+    joint_jaco[6] = -jointState[6]; // AGGIUNTA DI -PI/2 SENZA SENSO
 
     return joint_jaco;
 }
@@ -618,7 +635,52 @@ std::vector<double> convertToDH(const std::vector<double>& jointState) {
     joint_DH[3] = jointState[3];
     joint_DH[4] = jointState[4];
     joint_DH[5] = jointState[5] - PI;
-    joint_DH[6] = -jointState[6] + PI/2;
+    joint_DH[6] = -jointState[6]; // AGGIUNTA DI +PI/2 SENZA SENSO
+
+    return joint_DH;
+}
+
+std::vector<double> convertToDHVelocities(const std::vector<double>& jointState) {
+
+    int N_JOINTS = jointState.size();
+
+    std::vector<double> joint_DH(N_JOINTS);
+
+    joint_DH[0] = -jointState[0];
+    joint_DH[1] = jointState[1];
+    joint_DH[2] = jointState[2];
+    joint_DH[3] = jointState[3];
+    joint_DH[4] = jointState[4];
+    joint_DH[5] = jointState[5];
+    joint_DH[6] = -jointState[6]; // AGGIUNTA DI +PI/2 SENZA SENSO
+
+    return joint_DH;
+}
+
+std::vector<double> convertToDeg(const std::vector<double>& jointState) {
+
+    int N_JOINTS = jointState.size();
+
+    std::vector<double> joint_DH(N_JOINTS);
+
+    for(int i = 0; i < N_JOINTS; i++)
+    {
+        joint_DH[i] = (jointState[i]*180)/PI;
+    }
+
+    return joint_DH;
+}
+
+std::vector<double> convertToRad(const std::vector<double>& jointState) {
+
+    int N_JOINTS = jointState.size();
+
+    std::vector<double> joint_DH(N_JOINTS);
+
+    for(int i = 0; i < N_JOINTS; i++)
+    {
+        joint_DH[i] = (jointState[i]*PI)/180;
+    }
 
     return joint_DH;
 }

@@ -3,10 +3,16 @@
 
 #include <ssvep1/sendInitState.h>
 
+#include <thesis_msgs/FingerJoints.h>
+
 #include <geometry_msgs/Pose.h>
 #include <sensor_msgs/JointState.h>
 #include <std_msgs/Bool.h>
 #include <std_msgs/String.h>
+#include <kinova_msgs/JointVelocity.h>
+
+#include <kinova_driver/kinova_fingers_action.h>
+#include <actionlib/server/simple_action_server.h>
 
 #include <eigen3/Eigen/Core>
 #include <eigen3/Eigen/Dense>
@@ -18,7 +24,7 @@ class Robot
 
         ros::NodeHandle nh_;
 
-        ros::ServiceClient initStateClient_;
+        actionlib::SimpleActionServer<kinova_msgs::SetFingersPositionAction> fingerServer_;
 
         ros::Publisher jointStatePublisher_;
         ros::Publisher kinovaPublisher_;
@@ -32,8 +38,10 @@ class Robot
 
         sensor_msgs::JointState JOINT_MSG_;
         sensor_msgs::JointState KINOVA_MSG_;
+        kinova_msgs::SetFingersPositionResult FINGER_RES_;
 
-        std::vector<double> JOINT_STATE_{7};
+        std::vector<double> JOINT_STATE_ = {2.912, 0.427, 0.665, 1.262, -0.323, 0.943, 5.240};
+        std::vector<double> FINGER_STATE_ = {0, 0, 0, 0, 0, 0};
         std::vector<std::string>  JOINT_NAMES_ = {
             "j2s7s300_joint_1",
             "j2s7s300_joint_2",
@@ -42,6 +50,14 @@ class Robot
             "j2s7s300_joint_5",
             "j2s7s300_joint_6",
             "j2s7s300_joint_7",
+        };
+        std::vector<std::string> FINGER_NAMES_ ={
+            "j2s7s300_joint_finger_1",
+            "j2s7s300_joint_finger_2",
+            "j2s7s300_joint_finger_3",
+            "j2s7s300_joint_finger_tip_1",
+            "j2s7s300_joint_finger_tip_2",
+            "j2s7s300_joint_finger_tip_3"
         };
 
         std::vector<double> integrate(std::vector<double> velocities)
@@ -57,54 +73,56 @@ class Robot
             return newConfiguration;
         };
 
-        void velocitiesCallback(const sensor_msgs::JointStateConstPtr& velocitiesMsg)
+        void velocitiesCallback(const kinova_msgs::JointVelocityConstPtr& velocitiesMsg)
         {
-            std::vector<double> velocities = velocitiesMsg->velocity;
+            std::vector<double> velocities = {
+                velocitiesMsg->joint1,
+                velocitiesMsg->joint2,
+                velocitiesMsg->joint3,
+                velocitiesMsg->joint4,
+                velocitiesMsg->joint5,
+                velocitiesMsg->joint6,
+                velocitiesMsg->joint7
+            };
+
+            velocities = convertToRad(velocities);
+            velocities = convertToDHVelocities(velocities);
+
             JOINT_STATE_ = integrate(velocities);
         };
 
+        void executeFingerCallback(const kinova_msgs::SetFingersPositionGoalConstPtr& goal)
+        {
+            FINGER_RES_.fingers.finger1 = goal->fingers.finger1;
+            FINGER_RES_.fingers.finger2 = goal->fingers.finger2;
+            FINGER_RES_.fingers.finger3 = goal->fingers.finger3;
+
+            fingerServer_.setSucceeded(FINGER_RES_);
+        }
+
+
     public:
 
-        Robot()
+        Robot() : 
+            fingerServer_(nh_, "finger", boost::bind(&Robot::executeFingerCallback, this, _1), false)
         {
             ros::param::get("/SAMPLING_TIME", SAMPLING_TIME_);
 
-            initStateClient_ = nh_.serviceClient<ssvep1::sendInitState>("/initial_joint_state");
-            ssvep1::sendInitState initStateSrv;
-
-            while(!INIT_STATE_RECEIVED_)
-            {
-                if(initStateClient_.call(initStateSrv))
-                {
-                    JOINT_STATE_ = initStateSrv.response.initJointState;
-                    ROS_INFO("Initial joint configuration received.");
-                    INIT_STATE_RECEIVED_ = true;
-                }
-                else{
-                    ROS_WARN("Waiting to receive the initial joint configuration.");
-                }
-
-                ROBOT_CLOCK.sleep();
-            }
-
-            initStateClient_.shutdown();
-
-            jointStatePublisher_ = nh_.advertise<sensor_msgs::JointState>("/joint_state", 1);
             kinovaPublisher_ = nh_.advertise<sensor_msgs::JointState>("/j2s7s300_driver/out/joint_state", 1);
-            jointVelocitiesSubscriber_ = nh_.subscribe("/joint_velocities", 1, &Robot::velocitiesCallback, this);
+            jointVelocitiesSubscriber_ = nh_.subscribe("/j2s7s300_driver/in/joint_velocity", 1, &Robot::velocitiesCallback, this);
 
-            JOINT_MSG_.name = JOINT_NAMES_;
+            fingerServer_.start();
+
             KINOVA_MSG_.name = JOINT_NAMES_;
 
             while(ros::ok())
             {
-                JOINT_MSG_.position = JOINT_STATE_;
-                KINOVA_MSG_.position = convertToJaco2(JOINT_STATE_);
+                
+                std::vector<double> kinovajoints = convertToJaco2(JOINT_STATE_);
+                KINOVA_MSG_.position = kinovajoints;
 
-                JOINT_MSG_.header.stamp = ros::Time::now();
                 KINOVA_MSG_.header.stamp = ros::Time::now();
 
-                jointStatePublisher_.publish(JOINT_MSG_);
                 kinovaPublisher_.publish(KINOVA_MSG_);
 
                 ros::spinOnce();
