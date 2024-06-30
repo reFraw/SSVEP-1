@@ -12,6 +12,7 @@
 #include <kinova_msgs/JointVelocity.h>
 
 #include <kinova_driver/kinova_fingers_action.h>
+#include <kinova_msgs/FingerPosition.h>
 #include <actionlib/server/simple_action_server.h>
 
 #include <eigen3/Eigen/Core>
@@ -28,6 +29,7 @@ class Robot
 
         ros::Publisher jointStatePublisher_;
         ros::Publisher kinovaPublisher_;
+        ros::Publisher fingerPublisher_;
         ros::Subscriber jointVelocitiesSubscriber_;
 
         ros::Rate ROBOT_CLOCK{100};
@@ -38,10 +40,11 @@ class Robot
 
         sensor_msgs::JointState JOINT_MSG_;
         sensor_msgs::JointState KINOVA_MSG_;
+        kinova_msgs::FingerPosition FINGER_MSG_;
         kinova_msgs::SetFingersPositionResult FINGER_RES_;
 
         std::vector<double> JOINT_STATE_ = {2.912, 0.427, 0.665, 1.262, -0.323, 0.943, 5.240};
-        std::vector<double> FINGER_STATE_ = {0, 0, 0, 0, 0, 0};
+        std::vector<double> FINGER_POSITION_ = {0, 0, 0};
         std::vector<std::string>  JOINT_NAMES_ = {
             "j2s7s300_joint_1",
             "j2s7s300_joint_2",
@@ -93,6 +96,12 @@ class Robot
 
         void executeFingerCallback(const kinova_msgs::SetFingersPositionGoalConstPtr& goal)
         {
+            FINGER_POSITION_ = {
+                goal->fingers.finger1,
+                goal->fingers.finger2,
+                goal->fingers.finger1
+            };
+
             FINGER_RES_.fingers.finger1 = goal->fingers.finger1;
             FINGER_RES_.fingers.finger2 = goal->fingers.finger2;
             FINGER_RES_.fingers.finger3 = goal->fingers.finger3;
@@ -104,11 +113,12 @@ class Robot
     public:
 
         Robot() : 
-            fingerServer_(nh_, "finger", boost::bind(&Robot::executeFingerCallback, this, _1), false)
+            fingerServer_(nh_, "/j2s7s300_driver/fingers_action/finger_positions", boost::bind(&Robot::executeFingerCallback, this, _1), false)
         {
             ros::param::get("/SAMPLING_TIME", SAMPLING_TIME_);
 
             kinovaPublisher_ = nh_.advertise<sensor_msgs::JointState>("/j2s7s300_driver/out/joint_state", 1);
+            fingerPublisher_ = nh_.advertise<kinova_msgs::FingerPosition>("/j2s7s300_driver/out/finger_positions",1);
             jointVelocitiesSubscriber_ = nh_.subscribe("/j2s7s300_driver/in/joint_velocity", 1, &Robot::velocitiesCallback, this);
 
             fingerServer_.start();
@@ -121,9 +131,14 @@ class Robot
                 std::vector<double> kinovajoints = convertToJaco2(JOINT_STATE_);
                 KINOVA_MSG_.position = kinovajoints;
 
+                FINGER_MSG_.finger1 = FINGER_POSITION_[0];
+                FINGER_MSG_.finger2 = FINGER_POSITION_[1];
+                FINGER_MSG_.finger3 = FINGER_POSITION_[2];
+
                 KINOVA_MSG_.header.stamp = ros::Time::now();
 
                 kinovaPublisher_.publish(KINOVA_MSG_);
+                fingerPublisher_.publish(FINGER_MSG_);
 
                 ros::spinOnce();
                 ROBOT_CLOCK.sleep();

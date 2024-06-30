@@ -16,8 +16,11 @@
 #include "eigen3/Eigen/Geometry"
 
 #include "kinova_msgs/JointVelocity.h"
+#include "kinova_msgs/FingerPosition.h"
+#include "kinova_msgs/SetFingersPositionActionGoal.h"
+#include "kinova_msgs/SetFingersPositionActionResult.h"
 
-class Controller
+class RobotController
 {
     private:
 
@@ -31,12 +34,13 @@ class Controller
         ros::Publisher currentPosePublisher_; 
         ros::Subscriber waypointSubscriber_;
         ros::Subscriber jointStateSubscriber_;
-
+        ros::Subscriber fingerGoalSubscriber_;
+        ros::Subscriber fingerResultSubscriber_;
 
         ros::Rate CONTROLLER_CLOCK_{100};
 
         std::vector<double> JOINT_STATE_{7};
-        std::vector<double> FINGER_VEL_{6};
+        std::vector<double> FINGER_POS_{3};
         std::vector<std::string> JOINT_NAMES_ = {
             "j2s7s300_joint_1",
             "j2s7s300_joint_2",
@@ -51,6 +55,8 @@ class Controller
 
         bool INIT_STATE_RECEIVED_ = false;
         bool POSE_SENDED_ = false;
+
+        bool STOP_STREAM = false;
 
         bool ENABLE_MANIPULABILITY_ = false;
         double K0_;
@@ -101,9 +107,14 @@ class Controller
             currentPosePublisher_.publish(CURRENT_POSE_MSG_);
         };
 
-        void fingerCallback(const thesis_msgs::FingerJointsConstPtr& fingerMsg)
+        void fingerGoalCallback(const kinova_msgs::SetFingersPositionActionGoalConstPtr& fingerPosMsg)
         {
-            FINGER_VEL_ = fingerMsg->values;
+            STOP_STREAM = true;
+        }
+
+        void fingerResultCallback(const kinova_msgs::SetFingersPositionActionResultConstPtr& fingerPosMsg)
+        {
+            STOP_STREAM = false;
         }
 
         void waypointCallback(const thesis_msgs::DesiredWaypointConstPtr& waypointMsg)
@@ -162,20 +173,22 @@ class Controller
 
     public:
 
-        Controller()
+        RobotController()
         {
             ros::param::get("/GAIN", GAIN_);
             ros::param::get("/ENABLE_MANIPULABILITY", ENABLE_MANIPULABILITY_);
             ros::param::get("/NULL_GAIN", K0_);
             ros::param::get("/DERIVATIVE_STEP", DERIVATIVE_STEP_);
 
-            jointStateSubscriber_ = nh_.subscribe("/j2s7s300_driver/out/joint_state", 1, &Controller::jointStateCallback, this);
+            jointStateSubscriber_ = nh_.subscribe("/j2s7s300_driver/out/joint_state", 1, &RobotController::jointStateCallback, this);
 
             jointVelocitiesPublisher_ = nh_.advertise<kinova_msgs::JointVelocity>("/j2s7s300_driver/in/joint_velocity", 1);
             errorPublisher_ = nh_.advertise<thesis_msgs::Error>("/errors", 1);
             currentPosePublisher_ = nh_.advertise<geometry_msgs::Pose>("/current_pose", 1);
+            fingerGoalSubscriber_ = nh_.subscribe("/j2s7s300_driver/fingers_action/finger_positions/goal", 1, &RobotController::fingerGoalCallback, this);
+            fingerResultSubscriber_ = nh_.subscribe("/j2s7s300_driver/fingers_action/finger_positions/result", 1, &RobotController::fingerResultCallback, this);
             
-            waypointSubscriber_ = nh_.subscribe("/desired_waypoint", 1, &Controller::waypointCallback, this);
+            waypointSubscriber_ = nh_.subscribe("/desired_waypoint", 1, &RobotController::waypointCallback, this);
 
             while(!INIT_STATE_RECEIVED_)
             {
@@ -184,7 +197,7 @@ class Controller
                 CONTROLLER_CLOCK_.sleep();
             }
 
-            initPoseServer_ = nh_.advertiseService("/initial_pose", &Controller::sendInitPose, this);
+            initPoseServer_ = nh_.advertiseService("/initial_pose", &RobotController::sendInitPose, this);
 
             while(ros::ok())
             {   
@@ -208,20 +221,6 @@ class Controller
                 Eigen::Vector3d posErr = {errors[0], errors[1], errors[2]};
                 Eigen::Vector3d oriErr = {errors[3], errors[4], errors[5]};
 
-                // if (posErr.norm() >= 0.2 || oriErr.norm() >= 0.2)
-                // {
-                //     JOINT_VELOCITIES_MSG_.joint1 = 0;
-                //     JOINT_VELOCITIES_MSG_.joint2 = 0;
-                //     JOINT_VELOCITIES_MSG_.joint3 = 0;
-                //     JOINT_VELOCITIES_MSG_.joint4 = 0;
-                //     JOINT_VELOCITIES_MSG_.joint5 = 0;
-                //     JOINT_VELOCITIES_MSG_.joint6 = 0;
-                //     JOINT_VELOCITIES_MSG_.joint7 = 0;
-
-                //     jointVelocitiesPublisher_.publish(JOINT_VELOCITIES_MSG_);
-                //     ros::shutdown();
-                // }
-
                 ERROR_MSG_.positionErrorX = errors[0];
                 ERROR_MSG_.positionErrorY = errors[1];
                 ERROR_MSG_.positionErrorZ = errors[2];
@@ -237,16 +236,18 @@ class Controller
                 JOINT_VELOCITIES_MSG_.joint6 = velocities[5];
                 JOINT_VELOCITIES_MSG_.joint7 = velocities[6];
 
-                jointVelocitiesPublisher_.publish(JOINT_VELOCITIES_MSG_);
-                errorPublisher_.publish(ERROR_MSG_);
-
+                if(!STOP_STREAM)
+                {
+                    jointVelocitiesPublisher_.publish(JOINT_VELOCITIES_MSG_);
+                    errorPublisher_.publish(ERROR_MSG_);
+                }
                 ros::spinOnce();
                 CONTROLLER_CLOCK_.sleep();
             }
 
         };
 
-        ~Controller(){};
+        ~RobotController(){};
     
 };
 
@@ -255,7 +256,7 @@ int main(int argc, char** argv)
 
     ros::init(argc, argv, "controller");
     
-    Controller Controller;
+    RobotController RobotController;
 
     return 0;
 

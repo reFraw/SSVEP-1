@@ -20,6 +20,7 @@
 #include <actionlib/server/simple_action_server.h>
 #include <actionlib/client/simple_action_client.h>
 #include <kinova_driver/kinova_fingers_action.h>
+#include <kinova_msgs/FingerPosition.h>
 
 #include <ssvep1/MoveAction.h>
 #include <ssvep1/GrabAction.h>
@@ -53,6 +54,7 @@ class Planner
         kinova_msgs::SetFingersPositionGoal FINGER_POS_GOAL_;
 
         ros::Publisher waypointPublisher_;
+        ros::Subscriber fingerPositionSubscriber_;
         thesis_msgs::DesiredWaypoint WAYPOINT_MSG_;
 
         ros::Rate PLANNER_CLOCK{100};
@@ -73,6 +75,11 @@ class Planner
         double ZONE1_THRESHOLD_ = 0.3;
         double ZONE2_THRESHOLD_ = 0.6;
         double TOLERANCE_ = 0.01;
+
+        double openFinger = 0.00;
+        double closeFinger = 3500;
+        bool FINGER_FLAG_ = false;
+        std::vector<double> FINGER_POSITION_ = {0.00, 0.00, 0.00};
 
         Vector3d CURRENT_POSITION_;
         Quaterniond CURRENT_ORIENTATION_;
@@ -171,7 +178,7 @@ class Planner
                 };
 
                 ROS_INFO("Releasing object.");
-                this->grab(relPosition);
+                this->release(relPosition);
                 ROS_INFO("Object released.");
 
                 RELEASE_RESULT_.result = "SUCCESS";
@@ -308,21 +315,51 @@ class Planner
             double phaseFiveVelocity = D1.norm()/phaseFiveTime;
             
             this->move(D1, grabOrientation, phaseOneTime + DELAY_, phaseOneVelocity); // Moving to the approach position.
+
+            // Possible solution to finger controller fault
+
+            while(!FINGER_FLAG_)
+            {
+                FINGER_POS_GOAL_.fingers.finger1 = openFinger;
+                FINGER_POS_GOAL_.fingers.finger2 = openFinger;
+                FINGER_POS_GOAL_.fingers.finger3 = openFinger;
+                fingerClient_.sendGoal(FINGER_POS_GOAL_);
+                fingerClient_.waitForResult();
+                fingerClient_.getResult();
+                ros::Duration(1).sleep();
+                if (FINGER_POSITION_[0] >= openFinger && FINGER_POSITION_[1] >= openFinger && FINGER_POSITION_[2] >= openFinger)
+                {
+                    FINGER_FLAG_ = true;
+                }
+
+            }
+
+            FINGER_FLAG_ = false;
+
+            // end of possible solution to finger controller fault
+
             this->move(D2, grabOrientation, phaseTwoTime + DELAY_, phaseTwoVelocity); // Object approach.
 
-            FINGER_POS_GOAL_.fingers.finger1 = 0.0;
-            FINGER_POS_GOAL_.fingers.finger2 = 0.0;
-            FINGER_POS_GOAL_.fingers.finger3 = 0.0;
-            fingerClient_.sendGoal(FINGER_POS_GOAL_);
-            fingerClient_.waitForResult();
-            fingerClient_.getResult();
+            // Possible solution to finger controller fault
+            
+            while(!FINGER_FLAG_)
+            {
+                FINGER_POS_GOAL_.fingers.finger1 = closeFinger;
+                FINGER_POS_GOAL_.fingers.finger2 = closeFinger;
+                FINGER_POS_GOAL_.fingers.finger3 = closeFinger;
+                fingerClient_.sendGoal(FINGER_POS_GOAL_);
+                fingerClient_.waitForResult();
+                fingerClient_.getResult();
+                ros::Duration(1).sleep();
+                if (FINGER_POSITION_[0] <= closeFinger && FINGER_POSITION_[1] <= closeFinger && FINGER_POSITION_[2] <= closeFinger)
+                {
+                    FINGER_FLAG_ = true;
+                }
+            }
 
-            FINGER_POS_GOAL_.fingers.finger1 = 5500;
-            FINGER_POS_GOAL_.fingers.finger2 = 5500;
-            FINGER_POS_GOAL_.fingers.finger3 = 5500;
-            fingerClient_.sendGoal(FINGER_POS_GOAL_);
-            fingerClient_.waitForResult();
-            fingerClient_.getResult();
+            FINGER_FLAG_ = true;
+
+            // end of possible solution to finger controller fault
 
             this->move(D4, CURRENT_ORIENTATION_, phaseFourTime + DELAY_, phaseFourVelocity); // Return to the approach position.
             this->move(D5, startOrientation, phaseFiveTime + DELAY_, phaseFiveVelocity); // Return to initial position.
@@ -357,12 +394,26 @@ class Planner
             this->move(D1, grabOrientation, phaseOneTime + DELAY_, phaseOneVelocity); // Moving to the approach position.
             this->move(D2, CURRENT_ORIENTATION_, phaseTwoTime + DELAY_, phaseTwoVelocity); // Object approach.
 
-            FINGER_POS_GOAL_.fingers.finger1 = 0.00;
-            FINGER_POS_GOAL_.fingers.finger2 = 0.00;
-            FINGER_POS_GOAL_.fingers.finger3 = 0.00;
-            fingerClient_.sendGoal(FINGER_POS_GOAL_);
-            fingerClient_.waitForResult();
-            fingerClient_.getResult();
+            // Possible solution to finger controller fault
+
+            while(!FINGER_FLAG_)
+            {
+                FINGER_POS_GOAL_.fingers.finger1 = openFinger;
+                FINGER_POS_GOAL_.fingers.finger2 = openFinger;
+                FINGER_POS_GOAL_.fingers.finger3 = openFinger;
+                fingerClient_.sendGoal(FINGER_POS_GOAL_);
+                fingerClient_.waitForResult();
+                fingerClient_.getResult();
+                ros::Duration(1).sleep();
+                if (FINGER_POSITION_[0] >= openFinger && FINGER_POSITION_[1] >= openFinger && FINGER_POSITION_[2] >= openFinger)
+                {
+                    FINGER_FLAG_ = true;
+                }
+            }
+
+            FINGER_FLAG_ = false;
+
+            // End of possible solution to finger controller fault
 
             this->move(D4, CURRENT_ORIENTATION_, phaseFourTime + DELAY_, phaseFourVelocity); // Return to the approach position.
             this->move(D5, startOrientation, phaseFiveTime + DELAY_, phaseFiveVelocity); // Return to initial position.
@@ -439,6 +490,13 @@ class Planner
             return approachDisplacement;
         };
 
+        void fingerPositionCallback(const kinova_msgs::FingerPositionConstPtr& fingerPosMsg)
+        {
+            FINGER_POSITION_[0] = fingerPosMsg->finger1;
+            FINGER_POSITION_[1] = fingerPosMsg->finger2;
+            FINGER_POSITION_[2] = fingerPosMsg->finger3;
+        };
+
     public:
 
         Planner() :
@@ -446,7 +504,7 @@ class Planner
             grabServer_(nh_, "Grab", boost::bind(&Planner::GrabActionCallback, this, _1), false),
             releaseServer_(nh_, "Release", boost::bind(&Planner::ReleaseActionCallback, this, _1), false),
             grabAndReleaseServer_(nh_, "GrabRel", boost::bind(&Planner::GrabAndReleaseCallback, this, _1), false),
-            fingerClient_("finger", true)
+            fingerClient_("/j2s7s300_driver/fingers_action/finger_positions", true)
         {
             ros::param::get("/SAMPLING_TIME", SAMPLING_TIME_);
             ros::param::get("/TIME_DELAY", DELAY_);
@@ -489,6 +547,7 @@ class Planner
             initPoseClient_.shutdown();
 
             waypointPublisher_ = nh_.advertise<thesis_msgs::DesiredWaypoint>("/desired_waypoint", 1);
+            fingerPositionSubscriber_ = nh_.subscribe("/j2s7s300_driver/out/finger_positions", 1, &Planner::fingerPositionCallback, this);
 
             moveServer_.start();
             grabServer_.start();
