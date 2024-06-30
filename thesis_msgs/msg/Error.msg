@@ -1,6 +1,0 @@
-float64 positionErrorX
-float64 positionErrorY
-float64 positionErrorZ
-float64 orientationErrorX
-float64 orientationErrorY
-float64 orientationErrorZ
