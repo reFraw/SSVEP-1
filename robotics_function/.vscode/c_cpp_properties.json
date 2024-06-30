@@ -1,0 +1,30 @@
+{
+  "configurations": [
+    {
+      "browse": {
+        "databaseFilename": "${default}",
+        "limitSymbolsToIncludedHeaders": false
+      },
+      "includePath": [
+        "/home/refraw/ROS_Thesis/devel/include/**",
+        "/opt/ros/noetic/include/**",
+        "/home/refraw/ROS_Thesis/src/control_pack/include/**",
+        "/home/refraw/ROS_Thesis/src/kinova-ros-noetic-devel/kinova_moveit/inverse_kinematics_plugins/ikfast/j2n6s300_ikfast/include/**",
+        "/home/refraw/ROS_Thesis/src/kinova-ros-noetic-devel/kinova_moveit/inverse_kinematics_plugins/ikfast/j2s6s300_ikfast/include/**",
+        "/home/refraw/ROS_Thesis/src/kinova-ros-noetic-devel/kinova_moveit/inverse_kinematics_plugins/ikfast/j2s7s300_ikfast/include/**",
+        "/home/refraw/ROS_Thesis/src/jaco2clik/include/**",
+        "/home/refraw/ROS_Thesis/src/kinova-ros-noetic-devel/kinova_moveit/kinova_arm_moveit_demo/include/**",
+        "/home/refraw/ROS_Thesis/src/kinova-ros-noetic-devel/kinova_driver/include/**",
+        "/home/refraw/ROS_Thesis/src/kinova-ros-noetic-devel/kinova_moveit/inverse_kinematics_plugins/ikfast/m1n6s300_ikfast/include/**",
+        "/home/refraw/ROS_Thesis/src/robotics_function/include/**",
+        "/usr/include/**"
+      ],
+      "name": "ROS",
+      "intelliSenseMode": "gcc-x64",
+      "compilerPath": "/usr/bin/gcc",
+      "cStandard": "gnu11",
+      "cppStandard": "c++14"
+    }
+  ],
+  "version": 4
+}
